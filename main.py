@@ -1,4 +1,3 @@
-import json
 import requests
 from bs4 import BeautifulSoup
 
@@ -8,8 +7,19 @@ FILTER_CATEGORY = "Seminer"
 FILTER_BRANCH = "Pilates"
 FILTER_CITIES = ["Ankara", "İstanbul"]
 
+
 def get_html():
-    return requests.get(URL).text
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+    response = requests.get(URL, headers=headers, timeout=30)
+    response.raise_for_status()
+    return response.text
+
+
+def clean_text(text):
+    return " ".join(text.split()).strip()
+
 
 def parse(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -21,33 +31,46 @@ def parse(html):
         if len(cols) < 6:
             continue
 
-        item = {
-            "kategori": cols[1].text.strip(),
-            "baslik": cols[2].text.strip(),
-            "brans": cols[3].text.strip(),
-            "yer": cols[4].text.strip(),
-            "tarih": cols[5].text.strip(),
-        }
+        kategori = clean_text(cols[1].get_text(" ", strip=True))
+        baslik = clean_text(cols[2].get_text(" ", strip=True))
+        brans = clean_text(cols[3].get_text(" ", strip=True))
+        yer = clean_text(cols[4].get_text(" ", strip=True))
+        tarih = clean_text(cols[5].get_text(" ", strip=True))
 
-        items.append(item)
+        items.append({
+            "kategori": kategori,
+            "baslik": baslik,
+            "brans": brans,
+            "yer": yer,
+            "tarih": tarih,
+        })
 
     return items
 
+
 def filter_items(items):
     result = []
+
     for item in items:
-        if item["kategori"] != FILTER_CATEGORY:
+        kategori_text = item["kategori"].lower()
+        brans_text = item["brans"].lower()
+        baslik_text = item["baslik"].lower()
+        yer_text = item["yer"].lower()
+        combined_text = f"{yer_text} {baslik_text}"
+
+        if FILTER_CATEGORY.lower() not in kategori_text:
             continue
 
-        if "pilates" not in item["brans"].lower() and "pilates" not in item["baslik"].lower():
+        if FILTER_BRANCH.lower() not in brans_text and FILTER_BRANCH.lower() not in baslik_text:
             continue
 
-        if not any(city.lower() in item["yer"].lower() for city in FILTER_CITIES):
+        if not any(city.lower() in combined_text for city in FILTER_CITIES):
             continue
 
         result.append(item)
 
     return result
+
 
 def main():
     html = get_html()
@@ -55,8 +78,13 @@ def main():
     filtered = filter_items(items)
 
     print("Bulunanlar:")
-    for i in filtered:
-        print(i)
+    if not filtered:
+        print("Uygun kayıt bulunamadı.")
+        return
+
+    for item in filtered:
+        print(item)
+
 
 if __name__ == "__main__":
     main()
