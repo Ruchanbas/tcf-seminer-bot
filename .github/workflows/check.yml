@@ -2,7 +2,7 @@ name: TCF Kontrol
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 7,10,13,16 * * *"  # 10:00, 13:00, 16:00, 19:00 Türkiye saati
   workflow_dispatch:
 
 jobs:
@@ -13,6 +13,13 @@ jobs:
       - name: Repo cek
         uses: actions/checkout@v4
 
+      - name: seen_seminars.json cache yukle
+        uses: actions/cache@v4
+        with:
+          path: seen_seminars.json
+          key: seen-seminars
+          restore-keys: seen-seminars
+
       - name: Python kur
         uses: actions/setup-python@v5
         with:
@@ -22,4 +29,13 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Botu calistir
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
+
+      - name: seen_seminars.json cache kaydet
+        uses: actions/cache@v4
+        with:
+          path: seen_seminars.json
+          key: seen-seminars
