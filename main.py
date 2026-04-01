@@ -1,3 +1,4 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -6,6 +7,23 @@ URL = "https://www.tcf.gov.tr/faaliyetler/"
 FILTER_CATEGORY = "Seminer"
 FILTER_BRANCH = "Pilates"
 FILTER_CITIES = ["Ankara", "İstanbul"]
+
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+
+def send_telegram(message):
+    if not BOT_TOKEN or not CHAT_ID:
+        print("Telegram bilgileri eksik.")
+        return
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": CHAT_ID,
+        "text": message
+    }
+    response = requests.post(url, data=data, timeout=30)
+    response.raise_for_status()
 
 
 def get_html():
@@ -77,13 +95,19 @@ def main():
     items = parse(html)
     filtered = filter_items(items)
 
-    print("Bulunanlar:")
     if not filtered:
-        print("Uygun kayıt bulunamadı.")
+        print("Uygun kayıt yok")
         return
 
     for item in filtered:
-        print(item)
+        message = (
+            "Yeni Pilates Semineri!\n\n"
+            f"Başlık: {item['baslik']}\n"
+            f"Yer: {item['yer']}\n"
+            f"Tarih: {item['tarih']}"
+        )
+        print(message)
+        send_telegram(message)
 
 
 if __name__ == "__main__":
