@@ -59,8 +59,6 @@ def parse(html):
 def filter_items(items):
     result = []
     for item in items:
-        if FILTER_CATEGORY.lower() not in item["kategori"].lower():
-            continue
         if (FILTER_BRANCH.lower() not in item["brans"].lower() and
                 FILTER_BRANCH.lower() not in item["baslik"].lower()):
             continue
