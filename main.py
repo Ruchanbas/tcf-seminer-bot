@@ -1,5 +1,7 @@
 import os
 import json
+from datetime import date
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -7,9 +9,19 @@ URL = "https://www.tcf.gov.tr/faaliyetler/"
 FILTER_CATEGORY = "Seminer"
 FILTER_BRANCH = "Pilates"
 FILTER_CITIES = ["Ankara", "İstanbul"]
+
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 SEEN_FILE = "seen_seminars.json"
+
+# Sessiz pencere: bu tarihe kadar bildirim gitmez ve "görülmüş" kaydı
+# güncellenmez. Böylece biriken seminerler 1 Aralık'ta tek seferde gider.
+# Tarih gelince koşul kendiliğinden düşer, elle müdahale gerekmez.
+SESSIZ_BITIS = date(2026, 12, 1)
+
+
+def sessiz_mi():
+    return date.today() < SESSIZ_BITIS
 
 
 def send_telegram(message):
@@ -87,7 +99,6 @@ def make_uid(item):
 
 def main():
     seen = load_seen()
-
     html = get_html()
     items = parse(html)
     filtered = filter_items(items)
@@ -96,6 +107,14 @@ def main():
 
     if not new_items:
         print("Yeni seminer bulunamadı.")
+        return
+
+    if sessiz_mi():
+        print(f"SESSIZ MOD — {SESSIZ_BITIS} tarihine kadar bildirim yok.")
+        print(f"Bekleyen {len(new_items)} seminer:")
+        for _, item in new_items:
+            print(f"  - {item['tarih']} | {item['yer']} | {item['baslik']}")
+        print("Kayıt güncellenmedi; bunlar 1 Aralık'ta gönderilecek.")
         return
 
     for uid, item in new_items:
