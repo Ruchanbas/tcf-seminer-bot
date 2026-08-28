@@ -14,8 +14,8 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 SEEN_FILE = "seen_seminars.json"
 
-# Sessiz pencere: bu tarihe kadar bildirim gitmez ve "görülmüş" kaydı
-# güncellenmez. Böylece biriken seminerler 1 Aralık'ta tek seferde gider.
+# Sessiz pencere: bu tarihe kadar bildirim gitmez. Görülmüş kaydı yine de
+# güncellenir, yoksa biriken her şey tek seferde sağanak gibi gider.
 # Tarih gelince koşul kendiliğinden düşer, elle müdahale gerekmez.
 SESSIZ_BITIS = date(2026, 12, 1)
 
@@ -111,10 +111,13 @@ def main():
 
     if sessiz_mi():
         print(f"SESSIZ MOD — {SESSIZ_BITIS} tarihine kadar bildirim yok.")
-        print(f"Bekleyen {len(new_items)} seminer:")
+        print(f"Sessizce kaydedilen {len(new_items)} seminer:")
         for _, item in new_items:
             print(f"  - {item['tarih']} | {item['yer']} | {item['baslik']}")
-        print("Kayıt güncellenmedi; bunlar 1 Aralık'ta gönderilecek.")
+        for uid, _ in new_items:
+            seen.add(uid)
+        save_seen(seen)
+        print("Bildirim gönderilmedi.")
         return
 
     for uid, item in new_items:
